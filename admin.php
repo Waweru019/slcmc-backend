@@ -35,10 +35,7 @@ use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
 // 2. Include Composer's autoloader
-require 'vendor/autoload.php';
 
-// 3. Create an instance
-$mail = new PHPMailer(true);
 // 4. Start your session now
 session_start();
 
@@ -547,7 +544,7 @@ case 'forgotPassword':
             $mail->Host       = 'smtp.gmail.com';                       
             $mail->SMTPAuth   = true;                                   
             $mail->Username   = 'wawerumwangidan@gmail.com';         
-            $mail->Password   = 'phjiitkagwttwyvc';           
+            $mail->Password   = 'awwgslnijnaaaqbg';           
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         
             $mail->Port       = 587; 
 
@@ -781,274 +778,237 @@ case 'logout':
 
 
 
-    // ========================= 
-  //alumni information post methods   //
-//  alumni information post methods   //
-  // ========================= 
-
-
-     case "addPersonalDetails":
-    // Syncing case-sensitivity to match the explicit mapping we put in your Angular submitStep1()
-    $First_name       = $input['first_name'] ?? $input['First_name'] ?? '';
-    $Dob              = $input['dob'] ?? $input['Dob'] ?? '';
-    $Gender           = $input['gender'] ?? $input['Gender'] ?? '';
-    $Email            = $input['Email'] ?? ''; 
-    $Phone_number     = $input['phone_number'] ?? $input['Phone_number'] ?? '';
-    $Graduation_class = $input['graduation_class'] ?? $input['Graduation_class'] ?? '';
-    $password         = $input['Password'] ?? $input['password'] ?? '';
-    $user_id          = !empty($input['user_id']) ? intval($input['user_id']) : null;
-
-    //  THE FIX: Safely parse id_no to ensure blank submissions become a real database NULL
-    $id_no = isset($input['id_no']) ? trim($input['id_no']) : '';
-    if ($id_no === '') {
-        $id_no = null; 
-    }
-
-    // Handle Photo upload binary from $_FILES
-    $photoPath = "";
-    $uploaded = false;
-    if (!empty($_FILES['photo']['name']) && $_FILES['photo']['error'] === 0) {
-        $targetDir = __DIR__ . "/uploads/";
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0777, true);
-        }
-        $photoPath = "uploads/" . basename($_FILES["photo"]["name"]);
-        if (move_uploaded_file($_FILES["photo"]["tmp_name"], $targetDir . basename($_FILES["photo"]["name"]))) {
-            $uploaded = true;
-        }
-    }
-
-    if (!empty($user_id) && $user_id > 0) {
-        // UPDATE Mode
-        if ($uploaded) {
-            $stmt = $mysqli->prepare("UPDATE Users SET First_name=?, Dob=?, Gender=?, Email=?, Phone_number=?, id_no=?, photo=?, Graduation_class=? WHERE id=?");
-            $stmt->bind_param("ssssssssi", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $photoPath, $Graduation_class, $user_id);
-        } else {
-            $stmt = $mysqli->prepare("UPDATE Users SET First_name=?, Dob=?, Gender=?, Email=?, Phone_number=?, id_no=?, Graduation_class=? WHERE id=?");
-            $stmt->bind_param("sssssssi", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $Graduation_class, $user_id);
-        }
-        
-        if ($stmt && $stmt->execute()) {
-            $response = ["status" => "success", "message" => "Profile updated", "user_id" => $user_id];
-        } else {
-            $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-        }
-    } else {
-        // INSERT Mode
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-        $stmt = $mysqli->prepare("INSERT INTO Users (First_name, Dob, Gender, Email, Phone_number, id_no, photo, Password, Graduation_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssssssss", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $photoPath, $hashedPassword, $Graduation_class);
-        
-        if ($stmt && $stmt->execute()) {
-            $response = ["status" => "success", "message" => "User created", "user_id" => $stmt->insert_id];
-        } else {
-            $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-        }
-    }
-    if ($stmt) $stmt->close();
-    break;
-
-    case "addacademicrecord":
-            $user_id         = intval($input['user_id'] ?? 0);
-            $programme_name  = $input['programme_name'] ?? '';
-            $year_joined     = $input['year_joined'] ?? '';
-            $cohort_name     = $input['cohort_name'] ?? '';
-            $graduation_year = intval($input['graduation_year'] ?? 0);
-            $reg_number      = $input['reg_number'] ?? '';
-
-            // Check if record exists
-            $check = $mysqli->prepare("SELECT user_id FROM AcademicRecord WHERE user_id = ?");
-            $check->bind_param("i", $user_id);
-            $check->execute();
-            $check->store_result();
-
-            if ($check->num_rows > 0) {
-                $stmt = $mysqli->prepare("UPDATE AcademicRecord SET programme_name=?, year_joined=?, cohort_name=?, graduation_year=?, reg_number=? WHERE user_id=?");
-                $stmt->bind_param("sssisi", $programme_name, $year_joined, $cohort_name, $graduation_year, $reg_number, $user_id);
-            } else {
-                $stmt = $mysqli->prepare("INSERT INTO AcademicRecord (user_id, programme_name, year_joined, cohort_name, graduation_year, reg_number) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("isssis", $user_id, $programme_name, $year_joined, $cohort_name, $graduation_year, $reg_number);
-            }
-            $check->close();
-
-            if ($stmt && $stmt->execute()) {
-                $response = ["status" => "success", "message" => "Academic record saved"];
-            } else {
-                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-            }
-            if ($stmt) $stmt->close();
-            break;
-
-            //current employement posting and updating info//
-
-            //                                        //
-            case "addCurrentEmployment":
-            $user_id         = intval($input['user_id'] ?? 0);
-            $employer_name   = $input['employer_name'] ?? '';
-            $role            = $input['role'] ?? '';
-            $employment_type = $input['employment_type'] ?? '';
-            $work_county     = $input['work_county'] ?? '';
-            $start_date      = $input['start_date'] ?? '';
-
-            $check = $mysqli->prepare("SELECT user_id FROM CurrentEmployment WHERE user_id = ?");
-            $check->bind_param("i", $user_id);
-            $check->execute();
-            $check->store_result();
-
-            if ($check->num_rows > 0) {
-                $stmt = $mysqli->prepare("UPDATE CurrentEmployment SET employer_name=?, role=?, employment_type=?, work_county=?, start_date=? WHERE user_id=?");
-                $stmt->bind_param("sssssi", $employer_name, $role, $employment_type, $work_county, $start_date, $user_id);
-            } else {
-                $stmt = $mysqli->prepare("INSERT INTO CurrentEmployment (user_id, employer_name, role, employment_type, work_county, start_date) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("isssss", $user_id, $employer_name, $role, $employment_type, $work_county, $start_date);
-            }
-            $check->close();
-
-            if ($stmt && $stmt->execute()) {
-                $response = ["status" => "success", "message" => "Current Employment saved"];
-            } else {
-                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-            }
-            if ($stmt) $stmt->close();
-            break;
-
-             //  Employment History                                  //
-            //  Employment History                                  //
-      case "addEmploymentHistory": 
-            $user_id = intval($input['user_id'] ?? 0);
+   
             
-            $deleteStmt = $mysqli->prepare("DELETE FROM EmploymentHistory WHERE user_id = ?");
-            $deleteStmt->bind_param("i", $user_id);
-            $deleteStmt->execute();
-            $deleteStmt->close();
-
-            $success = true;
-            if (!empty($input['employers']) && is_array($input['employers'])) {
-                foreach ($input['employers'] as $job) {
-                    $stmt = $mysqli->prepare("INSERT INTO EmploymentHistory (user_id, employer_name, role, from_date, to_date) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->bind_param("issss", $user_id, $job['employer_name'], $job['role'], $job['from_date'], $job['to_date']);
-                    if (!$stmt->execute()) {
-                        $success = false;
-                    }
-                    $stmt->close();
-                }
-            }
-
-            if ($success) {
-                $response = ["status" => "success", "message" => "Employment history updated"];
-            } else {
-                $response = ["status" => "error", "message" => "Some history entries failed to save"];
-            }
-            break;
-     //  Further Education//
-     // Further Education //
-        case "addFurtherEducation":
-            $user_id          = intval($input['user_id'] ?? 0);
-            $institution      = $input['institution'] ?? '';
-            $field_of_study   = $input['field_of_study'] ?? '';
-            $year_completed   = intval($input['year_completed'] ?? 0);
-
-            $check = $mysqli->prepare("SELECT user_id FROM FurtherEducation WHERE user_id = ?");
-            $check->bind_param("i", $user_id);
-            $check->execute();
-            $check->store_result();
-
-            if ($check->num_rows > 0) {
-                $stmt = $mysqli->prepare("UPDATE FurtherEducation SET institution=?, field_of_study=?, year_completed=? WHERE user_id=?");
-                $stmt->bind_param("ssii", $institution, $field_of_study, $year_completed, $user_id);
-             } else 
-             {
-            $stmt = $mysqli->prepare("INSERT INTO FurtherEducation (user_id, institution, field_of_study, year_completed) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("issi", $user_id, $institution, $field_of_study, $year_completed);}$check->close();
-          if ($stmt && $stmt->execute()) 
-        {$response = ["status" => "success", "message" => "Further education saved"];
-                 } else {
-        $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-        }if 
-        ($stmt)
-         $stmt->close();
-        break;
-
-        // ProfessionalMembership 
-             case "addProfessionalMembership":
-             $user_id = intval($input['user_id'] ?? 0);
-             $organization  = $input['organization'] ?? '';
-             $membership_id = $input['membership_id'] ?? '';
-             $check = $mysqli->prepare("SELECT user_id FROM ProfessionalMembership WHERE user_id = ?");
-             $check->bind_param("i", $user_id);$check->execute();
-             $check->store_result();if ($check->num_rows > 0) 
-             {$stmt = $mysqli->prepare("UPDATE ProfessionalMembership SET organization=?, membership_id=? WHERE user_id=?");
-             $stmt->bind_param("ssi", $organization, $membership_id, $user_id);
-             } else {
-                $stmt = $mysqli->prepare("INSERT INTO ProfessionalMembership (user_id, organization, membership_id) VALUES (?, ?, ?)");
-                $stmt->bind_param("iss", $user_id, $organization, $membership_id);
-                }$check->close();
-                if ($stmt && $stmt->execute()) {$response = ["status" => "success", "message" => "Professional membership saved"];
-                } else {
-                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-                }if ($stmt) $stmt->close();
-                break;
-
-                //SocialContact
-
-             case "addSocialContact":
-                $user_id = intval($input['user_id'] ?? 0);
-                $linkedin = $input['linkedin'] ?? '';
-                $physical_address = $input['physical_address'] ?? '';
-                $home_county = $input['home_county'] ?? '';
-                $check = $mysqli->prepare("SELECT user_id FROM SocialContact WHERE user_id = ?");
-                $check->bind_param("i", $user_id);$check->execute();
-                $check->store_result();if ($check->num_rows > 0) 
-                {$stmt = $mysqli->prepare("UPDATE SocialContact SET linkedin=?, physical_address=?, home_county=? WHERE user_id=?");
-                $stmt->bind_param("sssi", $linkedin, $physical_address, $home_county, $user_id);
-                } else {$stmt = $mysqli->prepare("INSERT INTO SocialContact (user_id, linkedin, physical_address, home_county) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("isss", $user_id, $linkedin, $physical_address, $home_county);
-                }$check->close();
-                if ($stmt && $stmt->execute()) {$response = ["status" => "success", "message" => "Profile completed successfully"];
-                } else {$response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
-                }if ($stmt) $stmt->close();
-               break;
  // ========================= 
   // registration logic    //
 //  registration logic   //
   // ========================= 
 
-               case'register':
-                    $First_name      = $input['First_name'] ?? null;
-                   $Dob               = $input['Dob'] ?? null;
-                   $Gender            = $input['Gender'] ?? null;
-                   $Email             = $input['Email'] ?? null;
-                   $Phone_number      = $input['Phone_number'] ?? null;
-                   $id_no             = $input['id_no'] ?? null;
-                   $Graduation_class  = $input['Graduation_class'] ?? null;
-                   $Password          = isset($input['Password']) ? password_hash($input['Password'], PASSWORD_BCRYPT) : null;
+               case 'register':
+    $First_name       = $input['First_name'] ?? null;
+    $Dob              = $input['Dob'] ?? null;
+    $Gender           = $input['Gender'] ?? null;
+    $Email            = $input['Email'] ?? null;
+    $Phone_number     = $input['Phone_number'] ?? null;
+    $id_no            = $input['id_no'] ?? null;
+    $Graduation_class = $input['Graduation_class'] ?? null;
+    $Password         = isset($input['Password']) ? password_hash($input['Password'], PASSWORD_BCRYPT) : null;
 
     // Simple validation safeguard
-                   if (empty($First_name) || empty($Email) || empty($Password)) {
-                    echo json_encode(["status"=>"error","message"=>"Missing required registration fields."]);
-                    $mysqli->close();
-                    exit();
-                }
+    if (empty($First_name) || empty($Email) || empty($Password)) {
+        echo json_encode(["status" => "error", "message" => "Missing required registration fields."]);
+        $mysqli->close();
+        exit();
+    }
 
-                $sql = "INSERT INTO Users (First_name, Dob, Gender, Email, Phone_number, id_no, Password, Graduation_class) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    // 1. Insert the user into the database
+    $sql = "INSERT INTO Users (First_name, Dob, Gender, Email, Phone_number, id_no, Password, Graduation_class) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-                $stmt = $mysqli->prepare($sql);
+    $stmt = $mysqli->prepare($sql);
 
-                if ($stmt) {
-                    $stmt->bind_param("ssssssss", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $Password, $Graduation_class);
+    if ($stmt) {
+        $stmt->bind_param("ssssssss", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $Password, $Graduation_class);
 
-                    if ($stmt->execute()) {
-                        echo json_encode(["status"=>"success","message"=>"User registered successfully!"]);
-                    } else {
-                        echo json_encode(["status"=>"error","message"=>$stmt->error]);
+        if ($stmt->execute()) {
+            // Get the newly created user's ID
+            $user_id = $mysqli->insert_id; 
+
+            // 2. Generate a secure 6-digit OTP
+            $otp_code = (string)random_int(100000, 999999); 
+            
+            // Set expiration time (10 minutes from now)
+            $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+            // 3. Save the OTP to the email_verifications table
+            $otp_sql = "INSERT INTO email_verifications (user_id, email, otp_code, expires_at) 
+            VALUES (?, ?, ?, NOW() + INTERVAL 10 MINUTE)";
+            $otp_stmt = $mysqli->prepare($otp_sql);
+
+            if ($otp_stmt) {
+                $otp_stmt->bind_param("iss", $user_id, $Email, $otp_code,);
+                
+                if ($otp_stmt->execute()) {
+                    
+                    // 4. Send the verification email via PHPMailer
+                    // Make sure you have included/required PHPMailer classes at the top of your script!
+                    $mail = new PHPMailer(true);
+
+                    try {
+                        $mail->isSMTP();                                            
+                        $mail->Host       = 'smtp.gmail.com';                        
+                        $mail->SMTPAuth   = true;                                    
+                        $mail->Username   = 'wawerumwangidan@gmail.com';          
+                        $mail->Password   = 'awwgslnijnaaaqbg';            
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;          
+                        $mail->Port       = 587; 
+
+                        $mail->setFrom('wawerumwangidan@gmail.com', 'SLCMC Portal Security');
+                        $mail->addAddress($Email, $First_name);                        
+
+                        $mail->isHTML(true);                                        
+                        $mail->Subject = 'SLCMC Portal Account Verification Code';
+                        
+                        $mail->Body    = "
+                            <div style='font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; max-width: 500px;'>
+                                <h2 style='color: #0891b2;'>Welcome to SLCMC Alumni Portal</h2>
+                                <p>Hello " . htmlspecialchars($First_name) . ",</p>
+                                <p>Thank you for registering on the Sister Leonella Consolata Medical College Alumni Portal. To complete your registration setup, please verify your email address.</p>
+                                <p>Copy and enter the 6-digit secure activation code below into the registration panel verification screen:</p>
+                                <div style='background-color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 24px; font-weight: bold; text-align: center; color: #0f172a; margin: 20px 0; letter-spacing: 4px;'>
+                                    " . $otp_code . "
+                                </div>
+                                <p style='font-size: 13px; color : #64748b;'>This code is confidential and expires in 10 Minutes. If you did not create this account, please disregard this email.</p>
+                                <hr style='border: 0; border-top: 1px solid #e2e8f0; margin-top: 25px;'>
+                            </div>
+                        ";
+                        
+                        $mail->AltBody = "Hello " . $First_name . ",\n\nWelcome to SLCMC Portal! Your account verification code is: " . $otp_code . "\n\nThis code will expire in 10 minutes.";
+
+                        $mail->send();
+                        
+                        echo json_encode([
+                            "status" => "success", 
+                            "message" => "Registration successful! A 6-digit activation code has been sent to your email address.",
+                            "user_id" => $user_id
+                        ]);
+
+                    } catch (Exception $e) {
+                        error_log("Mail delivery structural failure: " . $mail->ErrorInfo);
+                        echo json_encode([
+                            "status" => "error", 
+                            "message" => "Registration saved, but unable to transmit verification code via email subsystem interface."
+                        ]);
                     }
-                    $stmt->close();
+
                 } else {
-                    echo json_encode(["status"=>"error","message"=>$mysqli->error]);
+                    echo json_encode(["status" => "error", "message" => "User created, but failed to generate verification code."]);
+                }
+                $otp_stmt->close();
+            } else {
+                echo json_encode(["status" => "error", "message" => "OTP statement preparation failed: " . $mysqli->error]);
+            }
+
+        } else {
+            echo json_encode(["status" => "error", "message" => $stmt->error]);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(["status" => "error", "message" => $mysqli->error]);
     }
     break;
 
+    case 'verify_otp':
+    $user_id  = $input['user_id'] ?? null;
+    $otp_code = $input['otp_code'] ?? null; 
+
+    if (empty($user_id) || empty($otp_code)) {
+        echo json_encode(["status" => "error", "message" => "User ID and Verification Code are required."]);
+        exit();
+    }
+
+    // 1. Fetch the status and expiration time of this specific token entry
+    $sql = "SELECT status, expires_at FROM email_verifications 
+            WHERE user_id = ? AND otp_code = ? 
+            ORDER BY created_at DESC LIMIT 1";
+    $stmt = $mysqli->prepare($sql);
+    
+    if ($stmt) {
+        $stmt->bind_param("is", $user_id, $otp_code);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+
+        if ($result) {
+            // Check if it's already used or manually expired
+            if ($result['status'] !== 'Active') {
+                echo json_encode(["status" => "error", "message" => "This code has already been used or invalidated."]);
+                exit();
+            }
+
+            // Check against your database's current time zone clock
+            $time_check = $mysqli->query("SELECT NOW() as current_db_time")->fetch_assoc();
+            if ($result['expires_at'] <= $time_check['current_db_time']) {
+                echo json_encode(["status" => "error", "message" => "This verification code has expired. Please request a new one."]);
+                exit();
+            }
+
+            // 2. Success! Mark the OTP as used
+            $update_otp = "UPDATE email_verifications SET status = 'Used' WHERE user_id = ? AND otp_code = ?";
+            $u_stmt = $mysqli->prepare($update_otp);
+            $u_stmt->bind_param("is", $user_id, $otp_code);
+            $u_stmt->execute();
+            $u_stmt->close();
+
+            // 3. Flip your user table status to verified
+           $update_user = "UPDATE Users SET verified_at = NOW() WHERE id = ?";
+            $usr_stmt = $mysqli->prepare($update_user);
+            $usr_stmt->bind_param("i", $user_id);
+            $usr_stmt->execute();
+            $usr_stmt->close();
+
+            echo json_encode(["status" => "success", "message" => "Account successfully verified! You can now log in."]);
+        } else {
+            // No record matched this combination
+            echo json_encode(["status" => "error", "message" => "Incorrect verification code."]);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(["status" => "error", "message" => "Database check failed."]);
+    }
+    break;
+ case 'resend_otp':
+        $user_id = $input['user_id'] ?? null;
+
+        if (empty($user_id)) {
+            echo json_encode(["status" => "error", "message" => "User reference parameter missing."]);
+            exit();
+        }
+
+        $res = $mysqli->prepare("SELECT First_name, Email FROM Users WHERE id = ?");
+        $res->bind_param("i", $user_id);
+        $res->execute();
+        $result = $res->get_result()->fetch_assoc();
+
+        if ($result) {
+            // Expire any existing active codes for this user
+            $expire_old = $mysqli->prepare("UPDATE email_verifications SET status = 'Expired' WHERE user_id = ? AND status = 'Active'");
+            $expire_old->bind_param("i", $user_id);
+            $expire_old->execute();
+
+            $new_otp = (string)random_int(100000, 999999);
+            $expires = date('Y-m-d H:i:s', strtotime('+10 minutes'));
+
+            $ins = $mysqli->prepare("INSERT INTO email_verifications (user_id, email, otp_code, expires_at) VALUES (?, ?, ?, ?)");
+            $ins->bind_param("isss", $user_id, $result['Email'], $new_otp, $expires);
+            
+            if ($ins->execute()) {
+                $mail = new PHPMailer(true);
+                try {
+                    $mail->isSMTP();
+                    $mail->Host       = 'smtp.gmail.com';
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = 'wawerumwangidan@gmail.com';
+                    $mail->Password   = 'awwgslnijnaaaqbg';
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = 587;
+
+                    $mail->setFrom('wawerumwangidan@gmail.com', 'SLCMC Portal Security');
+                    $mail->addAddress($result['Email'], $result['First_name']);
+                    $mail->isHTML(true);
+                    $mail->Subject = 'New SLCMC Portal Account Verification Code';
+                    $mail->Body    = "<div style='font-family: sans-serif; padding: 20px;'>Your new code is: <b>" . $new_otp . "</b></div>";
+                    $mail->send();
+
+                    echo json_encode(["status" => "success", "message" => "New token transmitted successfully."]);
+                } catch (Exception $e) {
+                    echo json_encode(["status" => "error", "message" => "Failed dispatching new verification mail."]);
+                }
+            }
+        } else {
+            echo json_encode(["status" => "error", "message" => "Account reference identifier not found."]);
+        }
+        break;
 
    case 'fetch_profile':
         $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
@@ -1102,34 +1062,34 @@ case 'logout':
         // =========================================================================
         $data['user']['photo_base64'] = null; // Default to null if no image exists
 
-        if ($data['user'] && !empty(trim($data['user']['photo']))) {
-            $photo_filename = trim($data['user']['photo']);
-            
-            // Build absolute file path to your server's upload storage directory.
-            // Adjust the '/uploads/' string below if your folders are structured differently!
-            $photo_path = __DIR__ . '/' . $photo_filename; 
-            
-            if (file_exists($photo_path) && is_file($photo_path)) {
-                $file_type = strtolower(pathinfo($photo_path, PATHINFO_EXTENSION));
-                
-                // Read binary file stream directly from local storage disk disk
-                $file_data = @file_get_contents($photo_path);
-                
-                if ($file_data !== false) {
-                    // Normalize standard extension string headers for the browser layout engine
-                    if ($file_type === 'jpg' || $file_type === 'jpeg') {
-                        $mime_type = 'image/jpeg';
-                    } elseif ($file_type === 'png') {
-                        $mime_type = 'image/png';
-                    } else {
-                        $mime_type = 'image/' . $file_type;
-                    }
-                    
-                    // Construct full clean Base64 Data URI string template
-                    $data['user']['photo_base64'] = 'data:' . $mime_type . ';base64,' . base64_encode($file_data);
-                }
+// FIX APPLIED HERE: Added ?? '' inside trim() to safely handle null values
+if ($data['user'] && !empty(trim($data['user']['photo'] ?? ''))) {
+    $photo_filename = trim($data['user']['photo']); 
+    
+    // Build absolute file path to your server's upload storage directory.
+    $photo_path = __DIR__ . '/' . $photo_filename; 
+    
+    if (file_exists($photo_path) && is_file($photo_path)) {
+        $file_type = strtolower(pathinfo($photo_path, PATHINFO_EXTENSION));
+        
+        // Read binary file stream directly from local storage disk
+        $file_data = @file_get_contents($photo_path);
+        
+        if ($file_data !== false) {
+            // Normalize standard extension string headers for the browser layout engine
+            if ($file_type === 'jpg' || $file_type === 'jpeg') {
+                $mime_type = 'image/jpeg';
+            } elseif ($file_type === 'png') {
+                $mime_type = 'image/png';
+            } else {
+                $mime_type = 'image/' . $file_type;
             }
+            
+            // Construct full clean Base64 Data URI string template
+            $data['user']['photo_base64'] = 'data:' . $mime_type . ';base64,' . base64_encode($file_data);
         }
+    }
+}
 
         // Return the compiled response back to Angular
         echo json_encode([
@@ -1753,6 +1713,251 @@ if ($stmt) {
     echo json_encode(["status" => "error", "message" => "SQL engine statement error"]);
 }
     break;
+     // ========================= 
+  //alumni information post methods   //
+//  alumni information post methods   //
+  // ========================= 
+
+
+     case "addPersonalDetails":
+    // Syncing case-sensitivity to match the explicit mapping we put in your Angular submitStep1()
+    $First_name       = $input['first_name'] ?? $input['First_name'] ?? '';
+    $Dob              = $input['dob'] ?? $input['Dob'] ?? '';
+    $Gender           = $input['gender'] ?? $input['Gender'] ?? '';
+    $Email            = $input['Email'] ?? ''; 
+    $Phone_number     = $input['phone_number'] ?? $input['Phone_number'] ?? '';
+    $Graduation_class = $input['graduation_class'] ?? $input['Graduation_class'] ?? '';
+    $password         = $input['Password'] ?? $input['password'] ?? '';
+    $user_id          = !empty($input['user_id']) ? intval($input['user_id']) : null;
+
+    //  THE FIX: Safely parse id_no to ensure blank submissions become a real database NULL
+    $id_no = isset($input['id_no']) ? trim($input['id_no']) : '';
+    if ($id_no === '') {
+        $id_no = null; 
+    }
+
+    // Handle Photo upload binary from $_FILES
+    $photoPath = "";
+    $uploaded = false;
+    if (!empty($_FILES['photo']['name']) && $_FILES['photo']['error'] === 0) {
+        $targetDir = __DIR__ . "/uploads/";
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        }
+        $photoPath = "uploads/" . basename($_FILES["photo"]["name"]);
+        if (move_uploaded_file($_FILES["photo"]["tmp_name"], $targetDir . basename($_FILES["photo"]["name"]))) {
+            $uploaded = true;
+        }
+    }
+
+    if (!empty($user_id) && $user_id > 0) {
+        // UPDATE Mode
+        if ($uploaded) {
+            $stmt = $mysqli->prepare("UPDATE Users SET First_name=?, Dob=?, Gender=?, Email=?, Phone_number=?, id_no=?, photo=?, Graduation_class=? WHERE id=?");
+            $stmt->bind_param("ssssssssi", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $photoPath, $Graduation_class, $user_id);
+        } else {
+            $stmt = $mysqli->prepare("UPDATE Users SET First_name=?, Dob=?, Gender=?, Email=?, Phone_number=?, id_no=?, Graduation_class=? WHERE id=?");
+            $stmt->bind_param("sssssssi", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $Graduation_class, $user_id);
+        }
+        
+        if ($stmt && $stmt->execute()) {
+            $response = ["status" => "success", "message" => "Profile updated", "user_id" => $user_id];
+        } else {
+            $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+        }
+    } else {
+        // INSERT Mode
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $stmt = $mysqli->prepare("INSERT INTO Users (First_name, Dob, Gender, Email, Phone_number, id_no, photo, Password, Graduation_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssssss", $First_name, $Dob, $Gender, $Email, $Phone_number, $id_no, $photoPath, $hashedPassword, $Graduation_class);
+        
+        if ($stmt && $stmt->execute()) {
+            $response = ["status" => "success", "message" => "User created", "user_id" => $stmt->insert_id];
+        } else {
+            $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+        }
+    }
+    if ($stmt) $stmt->close();
+    header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
+
+  case "addacademicrecord":
+            $user_id         = intval($input['user_id'] ?? 0);
+            $programme_name  = $input['programme_name'] ?? '';
+            $year_joined     = $input['year_joined'] ?? '';
+            $cohort_name     = $input['cohort_name'] ?? '';
+            $graduation_year = intval($input['graduation_year'] ?? 0);
+            $reg_number      = $input['reg_number'] ?? '';
+
+            // Check if record exists
+            $check = $mysqli->prepare("SELECT user_id FROM AcademicRecord WHERE user_id = ?");
+            $check->bind_param("i", $user_id);
+            $check->execute();
+            $check->store_result();
+
+            if ($check->num_rows > 0) {
+                $stmt = $mysqli->prepare("UPDATE AcademicRecord SET programme_name=?, year_joined=?, cohort_name=?, graduation_year=?, reg_number=? WHERE user_id=?");
+                $stmt->bind_param("sssisi", $programme_name, $year_joined, $cohort_name, $graduation_year, $reg_number, $user_id);
+            } else {
+                $stmt = $mysqli->prepare("INSERT INTO AcademicRecord (user_id, programme_name, year_joined, cohort_name, graduation_year, reg_number) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("isssis", $user_id, $programme_name, $year_joined, $cohort_name, $graduation_year, $reg_number);
+            }
+            $check->close();
+
+            if ($stmt && $stmt->execute()) {
+                $response = ["status" => "success", "message" => "Academic record saved"];
+            } else {
+                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+            }
+            if ($stmt) $stmt->close();
+
+            // ==========================================
+            // FIX: Echo the response back to Angular here!
+            // ==========================================
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit(); // Stop execution so nothing else interferes
+
+            //current employement posting and updating info//
+
+            //                                        //
+            case "addCurrentEmployment":
+            $user_id         = intval($input['user_id'] ?? 0);
+            $employer_name   = $input['employer_name'] ?? '';
+            $role            = $input['role'] ?? '';
+            $employment_type = $input['employment_type'] ?? '';
+            $work_county     = $input['work_county'] ?? '';
+            $start_date      = $input['start_date'] ?? '';
+
+            $check = $mysqli->prepare("SELECT user_id FROM CurrentEmployment WHERE user_id = ?");
+            $check->bind_param("i", $user_id);
+            $check->execute();
+            $check->store_result();
+
+            if ($check->num_rows > 0) {
+                $stmt = $mysqli->prepare("UPDATE CurrentEmployment SET employer_name=?, role=?, employment_type=?, work_county=?, start_date=? WHERE user_id=?");
+                $stmt->bind_param("sssssi", $employer_name, $role, $employment_type, $work_county, $start_date, $user_id);
+            } else {
+                $stmt = $mysqli->prepare("INSERT INTO CurrentEmployment (user_id, employer_name, role, employment_type, work_county, start_date) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("isssss", $user_id, $employer_name, $role, $employment_type, $work_county, $start_date);
+            }
+            $check->close();
+
+            if ($stmt && $stmt->execute()) {
+                $response = ["status" => "success", "message" => "Current Employment saved"];
+            } else {
+                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+            }
+            if ($stmt) $stmt->close();
+             header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
+
+             //  Employment History                                  //
+            //  Employment History                                  //
+      case "addEmploymentHistory": 
+            $user_id = intval($input['user_id'] ?? 0);
+            
+            $deleteStmt = $mysqli->prepare("DELETE FROM EmploymentHistory WHERE user_id = ?");
+            $deleteStmt->bind_param("i", $user_id);
+            $deleteStmt->execute();
+            $deleteStmt->close();
+
+            $success = true;
+            if (!empty($input['employers']) && is_array($input['employers'])) {
+                foreach ($input['employers'] as $job) {
+                    $stmt = $mysqli->prepare("INSERT INTO EmploymentHistory (user_id, employer_name, role, from_date, to_date) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->bind_param("issss", $user_id, $job['employer_name'], $job['role'], $job['from_date'], $job['to_date']);
+                    if (!$stmt->execute()) {
+                        $success = false;
+                    }
+                    $stmt->close();
+                }
+            }
+
+            if ($success) {
+                $response = ["status" => "success", "message" => "Employment history updated"];
+            } else {
+                $response = ["status" => "error", "message" => "Some history entries failed to save"];
+            }
+             header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
+     //  Further Education//
+     // Further Education //
+        case "addFurtherEducation":
+            $user_id          = intval($input['user_id'] ?? 0);
+            $institution      = $input['institution'] ?? '';
+            $field_of_study   = $input['field_of_study'] ?? '';
+            $year_completed   = intval($input['year_completed'] ?? 0);
+
+            $check = $mysqli->prepare("SELECT user_id FROM FurtherEducation WHERE user_id = ?");
+            $check->bind_param("i", $user_id);
+            $check->execute();
+            $check->store_result();
+
+            if ($check->num_rows > 0) {
+                $stmt = $mysqli->prepare("UPDATE FurtherEducation SET institution=?, field_of_study=?, year_completed=? WHERE user_id=?");
+                $stmt->bind_param("ssii", $institution, $field_of_study, $year_completed, $user_id);
+             } else 
+             {
+            $stmt = $mysqli->prepare("INSERT INTO FurtherEducation (user_id, institution, field_of_study, year_completed) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("issi", $user_id, $institution, $field_of_study, $year_completed);}$check->close();
+          if ($stmt && $stmt->execute()) 
+        {$response = ["status" => "success", "message" => "Further education saved"];
+                 } else {
+        $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+        }if 
+        ($stmt)
+         $stmt->close();
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
+
+        // ProfessionalMembership 
+             case "addProfessionalMembership":
+             $user_id = intval($input['user_id'] ?? 0);
+             $organization  = $input['organization'] ?? '';
+             $membership_id = $input['membership_id'] ?? '';
+             $check = $mysqli->prepare("SELECT user_id FROM ProfessionalMembership WHERE user_id = ?");
+             $check->bind_param("i", $user_id);$check->execute();
+             $check->store_result();if ($check->num_rows > 0) 
+             {$stmt = $mysqli->prepare("UPDATE ProfessionalMembership SET organization=?, membership_id=? WHERE user_id=?");
+             $stmt->bind_param("ssi", $organization, $membership_id, $user_id);
+             } else {
+                $stmt = $mysqli->prepare("INSERT INTO ProfessionalMembership (user_id, organization, membership_id) VALUES (?, ?, ?)");
+                $stmt->bind_param("iss", $user_id, $organization, $membership_id);
+                }$check->close();
+                if ($stmt && $stmt->execute()) {$response = ["status" => "success", "message" => "Professional membership saved"];
+                } else {
+                $response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+                }if ($stmt) $stmt->close();
+                header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
+
+                //SocialContact
+
+             case "addSocialContact":
+                $user_id = intval($input['user_id'] ?? 0);
+                $linkedin = $input['linkedin'] ?? '';
+                $physical_address = $input['physical_address'] ?? '';
+                $home_county = $input['home_county'] ?? '';
+                $check = $mysqli->prepare("SELECT user_id FROM SocialContact WHERE user_id = ?");
+                $check->bind_param("i", $user_id);$check->execute();
+                $check->store_result();if ($check->num_rows > 0) 
+                {$stmt = $mysqli->prepare("UPDATE SocialContact SET linkedin=?, physical_address=?, home_county=? WHERE user_id=?");
+                $stmt->bind_param("sssi", $linkedin, $physical_address, $home_county, $user_id);
+                } else {$stmt = $mysqli->prepare("INSERT INTO SocialContact (user_id, linkedin, physical_address, home_county) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("isss", $user_id, $linkedin, $physical_address, $home_county);
+                }$check->close();
+                if ($stmt && $stmt->execute()) {$response = ["status" => "success", "message" => "Profile completed successfully"];
+                } else {$response = ["status" => "error", "message" => $stmt ? $stmt->error : $mysqli->error];
+                }if ($stmt) $stmt->close();
+               header('Content-Type: application/json');
+            echo json_encode($response);
+            exit();
 
              default:
     echo json_encode(["error" => "Invalid action"]);
